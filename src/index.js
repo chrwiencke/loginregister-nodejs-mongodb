@@ -3,8 +3,12 @@ const path = require("path");
 const app = express();
 const LogInCollection = require("./mongo");
 const port = process.env.PORT || 3004;
-app.use(express.json());
+const bcrypt = require('bcrypt');
 
+// Create a salt and hash function
+const saltRounds = 10;
+
+app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 const tempelatePath = path.join(__dirname, "../pages");
@@ -24,9 +28,12 @@ app.get("/", (req, res) => {
 
 app.post("/signup", async (req, res) => {
   try {
+    const salt = await bcrypt.genSalt(saltRounds);
+    const hashedPassword = await bcrypt.hash(req.body.password, salt);
+
     const data = {
       name: req.body.name,
-      password: req.body.password,
+      password: hashedPassword,
     };
 
     const checking = await LogInCollection.findOne({ name: req.body.name });
@@ -48,10 +55,15 @@ app.post("/login", async (req, res) => {
   try {
     const check = await LogInCollection.findOne({ name: req.body.name });
 
-    if (check && check.password === req.body.password) {
-      res.status(201).render("home", { naming: `${req.body.name}` });
+    if (check) {
+      const isValid = await bcrypt.compare(req.body.password, check.password);
+      if (isValid) {
+        res.status(201).render("home", { naming: `${req.body.name}` });
+      } else {
+        res.status(401).send("Incorrect password");
+      }
     } else {
-      res.status(401).send("Incorrect password");
+      res.status(401).send("User not found");
     }
   } catch (e) {
     res.status(500).send("Error logging in");
