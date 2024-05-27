@@ -3,9 +3,8 @@ const path = require("path");
 const app = express();
 const LogInCollection = require("./mongo");
 const port = process.env.PORT || 3004;
-const bcrypt = require('bcrypt');
+const bcrypt = require("bcrypt");
 
-// Create a salt and hash function
 const saltRounds = 10;
 
 app.use(express.json());
